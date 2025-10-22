@@ -61,33 +61,165 @@ def create_sample_jobs(num_jobs: int = 10, min_time: int = 5, max_time: int = 30
         # Add to our list
         jobs.append(job)
     return jobs
+
+def calculate_makespan(chromosome: np.ndarray, jobs: List[Job], num_machines: int) -> float:
+    """
+    Calculate the makespan (total completion time) for a given chromosome.
     
+    The makespan is the maximum completion time across all machines.
+    Lower makespan = better solution.
+    
+    Args:
+        chromosome (np.ndarray): Job-to-machine assignment array
+                                 Example: [0, 2, 1, 0, 2] means:
+                                 Job 0 -> Machine 0
+                                 Job 1 -> Machine 2
+                                 Job 2 -> Machine 1
+                                 Job 3 -> Machine 0
+                                 Job 4 -> Machine 2
+        jobs (List[Job]): List of Job objects
+        num_machines (int): Number of available machines
+        
+    Returns:
+        float: Makespan value (maximum machine load)
+        
+    Example:
+        jobs = [Job(0, 10), Job(1, 25), Job(2, 15)]
+        chromosome = [0, 1, 2]  # Each job on different machine
+        makespan = calculate_makespan(chromosome, jobs, 3)
+        # Result: 25 (Machine 1 has the longest job)
+    """
+    # Initialize machine loads (cumulative time for each machine)
+    # Example: [0, 0, 0] for 3 machines - all start empty
+    machine_loads = np.zeros(num_machines)
+
+    # For each job, add its processing time to the assigned machine
+    for job_idx, machine_idx in enumerate(chromosome):
+        # job_idx: index in chromosome (0, 1, 2, ...)
+        # machine_idx: which machine this job is assigned to
+        
+        # Get the job's processing time
+        job_processing_time = jobs[job_idx].processing_time
+
+        # Add this time to the machine's total load
+        machine_loads[machine_idx] += job_processing_time
+
+    # Makespan is the maximum load (the busiest machine determines total time)
+    makespan = np.max(machine_loads)
+    
+    return makespan
+
+#########TESTS######################   
 if __name__ == "__main__":
-    print("=" * 60)
-    print("Testing Job Scheduling - Step 1: Job Class")
-    print("=" * 60)
+    print("=" * 70)
+    print("Testing Job Scheduling - Step 2: Chromosome and Makespan")
+    print("=" * 70)
     
-    # Test 1: Manual job creation
-    print("\n1. Creating jobs manually:")
-    job1 = Job(job_id=0, processing_time=10)
-    job2 = Job(job_id=1, processing_time=25)
-    job3 = Job(job_id=2, processing_time=15)
+    # Create some test jobs
+    print("\n1. Creating test jobs:")
+    jobs = [
+        Job(job_id=0, processing_time=10),
+        Job(job_id=1, processing_time=25),
+        Job(job_id=2, processing_time=15),
+        Job(job_id=3, processing_time=20),
+        Job(job_id=4, processing_time=12)
+    ]
     
-    print(f"  {job1}")
-    print(f"  {job2}")
-    print(f"  {job3}")
-    
-    # Test 2: Automatic job generation
-    print("\n2. Generating jobs automatically:")
-    np.random.seed(42)  # For reproducible results
-    jobs = create_sample_jobs(num_jobs=10, min_time=5, max_time=25)
-    
-    print(f"  Created {len(jobs)} jobs:")
     for job in jobs:
-        print(f"    {job}")
+        print(f"  {job}")
     
-    # Test 3: Calculate total time if all jobs run sequentially
-    print("\n3. Total processing time:")
     total_time = sum(job.processing_time for job in jobs)
-    print(f"  If all jobs run one after another: {total_time} time units")
-    print(f"  If we have 3 machines, best case: ~{total_time / 3:.1f} time units")
+    print(f"\n  Total processing time: {total_time} time units")
+    
+    # Test different chromosomes (solutions)
+    print("\n" + "=" * 70)
+    print("2. Testing different solutions (chromosomes):")
+    print("=" * 70)
+    
+    num_machines = 3
+    
+    # Solution 1: All jobs on Machine 0 (WORST CASE)
+    print("\n  Solution 1: All jobs on Machine 0")
+    chromosome1 = np.array([0, 0, 0, 0, 0])
+    print(f"  Chromosome: {chromosome1}")
+    makespan1 = calculate_makespan(chromosome1, jobs, num_machines)
+    print(f"  Machine loads:")
+    
+    # Calculate and display load per machine
+    loads1 = np.zeros(num_machines)
+    for job_idx, machine_idx in enumerate(chromosome1):
+        loads1[machine_idx] += jobs[job_idx].processing_time
+    
+    for i, load in enumerate(loads1):
+        jobs_on_machine = [j for j, m in enumerate(chromosome1) if m == i]
+        job_ids = ', '.join([f"J{j}" for j in jobs_on_machine])
+        print(f"    Machine {i}: {job_ids if job_ids else '(empty)'} = {load:.0f} time units")
+    
+    print(f"  Makespan: {makespan1:.0f} time units")
+    
+    # Solution 2: Balanced distribution
+    print("\n  Solution 2: Balanced distribution")
+    chromosome2 = np.array([0, 1, 2, 0, 1])
+    print(f"  Chromosome: {chromosome2}")
+    makespan2 = calculate_makespan(chromosome2, jobs, num_machines)
+    print(f"  Machine loads:")
+    
+    loads2 = np.zeros(num_machines)
+    for job_idx, machine_idx in enumerate(chromosome2):
+        loads2[machine_idx] += jobs[job_idx].processing_time
+    
+    for i, load in enumerate(loads2):
+        jobs_on_machine = [j for j, m in enumerate(chromosome2) if m == i]
+        job_ids = ', '.join([f"J{j}" for j in jobs_on_machine])
+        print(f"    Machine {i}: {job_ids if job_ids else '(empty)'} = {load:.0f} time units")
+    
+    print(f"  Makespan: {makespan2:.0f} time units")
+    
+    # Solution 3: Your turn to create!
+    print("\n  Solution 3: Different distribution")
+    chromosome3 = np.array([2, 0, 1, 2, 0])
+    print(f"  Chromosome: {chromosome3}")
+    makespan3 = calculate_makespan(chromosome3, jobs, num_machines)
+    print(f"  Machine loads:")
+    
+    loads3 = np.zeros(num_machines)
+    for job_idx, machine_idx in enumerate(chromosome3):
+        loads3[machine_idx] += jobs[job_idx].processing_time
+    
+    for i, load in enumerate(loads3):
+        jobs_on_machine = [j for j, m in enumerate(chromosome3) if m == i]
+        job_ids = ', '.join([f"J{j}" for j in jobs_on_machine])
+        print(f"    Machine {i}: {job_ids if job_ids else '(empty)'} = {load:.0f} time units")
+    
+    print(f"  Makespan: {makespan3:.0f} time units")
+
+    # Solution 4: Optimal distribution (found manually)
+    print("\n  Solution 4: Optimal distribution")
+    chromosome4 = np.array([2, 0, 1, 2, 1])
+    print(f"  Chromosome: {chromosome4}")
+    makespan4 = calculate_makespan(chromosome4, jobs, num_machines)
+    print(f"  Machine loads:")
+    
+    loads4 = np.zeros(num_machines)
+    for job_idx, machine_idx in enumerate(chromosome4):
+        loads4[machine_idx] += jobs[job_idx].processing_time
+    
+    for i, load in enumerate(loads4):
+        jobs_on_machine = [j for j, m in enumerate(chromosome4) if m == i]
+        job_ids = ', '.join([f"J{j}" for j in jobs_on_machine])
+        print(f"    Machine {i}: {job_ids if job_ids else '(empty)'} = {load:.0f} time units")
+    
+    print(f"  Makespan: {makespan4:.0f} time units")
+
+    # Compare solutions
+    print("\n" + "=" * 70)
+    print("3. Comparison:")
+    print("=" * 70)
+    print(f"  Solution 1 (all on one machine): {makespan1:.0f} time units")
+    print(f"  Solution 2 (balanced):            {makespan2:.0f} time units")
+    print(f"  Solution 3 (different):           {makespan3:.0f} time units")
+    print(f"  Solution 4 (optimal):             {makespan4:.0f} time units")
+    
+    best_makespan = min(makespan1, makespan2, makespan3, makespan4)
+    print(f"\n  Best solution: {best_makespan:.0f} time units")
+    print(f"  Improvement from worst: {((makespan1 - best_makespan) / makespan1 * 100):.1f}%")
