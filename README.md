@@ -47,7 +47,7 @@ Makespan = 25 min
 ### Setup
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/job-scheduler-ga.git
+git clone https://github.com/BaykushevI/job-scheduler-ga.git
 cd job-scheduler-ga
 
 # Create virtual environment
@@ -127,9 +127,8 @@ The project implements the following GA components:
 This project is developed incrementally for educational purposes. Each component is thoroughly documented with inline comments explaining the implementation details.
 
 ### Running Tests
-```bash
 python job_scheduler_ga.py
-```
+
 
 Currently, tests are embedded in the main script using the `if __name__ == "__main__"` block.
 

@@ -1,0 +1,14 @@
+# Job Scheduling Optimizer Requirements
+# Python 3.8+
+
+# Core dependencies
+numpy>=1.21.0
+matplotlib>=3.4.0
+
+# Optional: For enhanced visualization
+plotly>=5.0.0
+
+# Development dependencies (optional)
+pytest>=7.0.0
+black>=22.0.0
+flake8>=4.0.0
