@@ -109,6 +109,71 @@ def calculate_makespan(chromosome: np.ndarray, jobs: List[Job], num_machines: in
     
     return makespan
 
+def initialize_population(num_jobs: int, num_machines: int, population_size: int) -> np.ndarray:
+    """
+    Create initial random population of chromosomes.
+    
+    Each chromosome is a random assignment of jobs to machines.
+    This creates diverse starting solutions for the GA to evolve.
+    
+    Args:
+        num_jobs (int): Number of jobs to schedule
+        num_machines (int): Number of available machines
+        population_size (int): Number of solutions in the population
+        
+    Returns:
+        np.ndarray: Population matrix of shape (population_size, num_jobs)
+                    Each row is a chromosome (solution)
+                    
+    Example:
+        # 5 jobs, 3 machines, population of 4
+        population = initialize_population(5, 3, 4)
+        
+        # Might generate:
+        # [[0, 2, 1, 0, 2],  ← Solution 1
+        #  [1, 0, 2, 1, 0],  ← Solution 2
+        #  [2, 1, 0, 2, 1],  ← Solution 3
+        #  [0, 0, 1, 2, 1]]  ← Solution 4
+    """
+    # Generate random integers between 0 and num_machines-1
+    # Shape: (population_size rows, num_jobs columns)
+    population = np.random.randint(
+        low = 0,  # Minimum machine ID (inclusive)
+        high = num_machines,  # Maximum machine ID (exclusive, so we use num_machines)
+        size = (population_size, num_jobs)    # Matrix dimensions
+    )
+
+    return population
+
+def evaluate_population(population: np.ndarray, jobs: List[Job], num_machines: int) -> np.ndarray:
+    """
+    Calculate fitness for all chromosomes in the population.
+    
+    This function evaluates how good each solution is by calculating
+    its fitness value (1/makespan).
+    
+    Args:
+        population (np.ndarray): Population matrix (population_size, num_jobs)
+        jobs (List[Job]): List of Job objects
+        num_machines (int): Number of available machines
+        
+    Returns:
+        np.ndarray: Array of fitness values, one for each chromosome
+        
+    Example:
+        population = [[0, 2, 1, 0, 2], [1, 0, 2, 1, 0]]
+        fitness_values = evaluate_population(population, jobs, 3)
+        # Returns: [0.0270, 0.0333] (example values)
+    """
+    # Create empty array to store fitness values
+    fitness_values = np.zeros(len(population))
+
+    # calculate fitness for each chromosome
+    for i, chromosome in enumerate(population):
+        fitness_values[i] = calculate_fitness(chromosome, jobs, num_machines)
+
+    return fitness_values
+
 def calculate_fitness(chromosome: np.ndarray, jobs: List[Job], num_machines: int) -> float:
     """
     Calculate the fitness value for a given chromosome.
@@ -300,3 +365,121 @@ if __name__ == "__main__":
     print(f"    Solution 4: {prob4:.1f}% chance ← HIGHEST (best solution)")
     
     print("\n  This is how GA evolves toward better solutions!")
+
+    # Random Search Experiment
+    print("\n" + "=" * 70)
+    print("6. Random Search Experiment (100 random solutions):")
+    print("=" * 70)
+    print("\n  Goal: Find best solution among 100 random attempts")
+    print("  This simulates what happens WITHOUT evolution")
+    print()
+    
+    # Set random seed for reproducibility
+    np.random.seed(42)
+    
+    # Generate 100 random solutions
+    num_jobs = len(jobs)
+    population_size = 100
+    population = initialize_population(num_jobs, num_machines, population_size)
+    
+    print(f"  Generated {population_size} random solutions...")
+    print(f"  Example chromosomes:")
+    for i in range(5):
+        print(f"    Solution {i+1}: {population[i]}")
+    print(f"    ...")
+    print()
+    
+    # Evaluate all solutions
+    fitness_values = evaluate_population(population, jobs, num_machines)
+    
+    # Find best solution
+    best_idx = np.argmax(fitness_values)  # Index of highest fitness
+    best_chromosome = population[best_idx]
+    best_fitness = fitness_values[best_idx]
+    best_makespan = 1.0 / best_fitness  # Convert back to makespan
+    
+    # Find worst solution
+    worst_idx = np.argmin(fitness_values)
+    worst_chromosome = population[worst_idx]
+    worst_fitness = fitness_values[worst_idx]
+    worst_makespan = 1.0 / worst_fitness
+    
+    # Calculate statistics
+    avg_fitness = np.mean(fitness_values)
+    avg_makespan = 1.0 / avg_fitness
+    
+    print("  Results:")
+    print(f"    Best solution found:")
+    print(f"      Chromosome: {best_chromosome}")
+    print(f"      Makespan: {best_makespan:.0f} time units")
+    print(f"      Fitness: {best_fitness:.6f}")
+    
+    # Show machine distribution for best solution
+    loads_best = np.zeros(num_machines)
+    for job_idx, machine_idx in enumerate(best_chromosome):
+        loads_best[machine_idx] += jobs[job_idx].processing_time
+    
+    print(f"      Machine loads:")
+    for i, load in enumerate(loads_best):
+        jobs_on_machine = [j for j, m in enumerate(best_chromosome) if m == i]
+        job_ids = ', '.join([f"J{j}" for j in jobs_on_machine])
+        print(f"        Machine {i}: {job_ids if job_ids else '(empty)'} = {load:.0f} time units")
+    
+    print()
+    print(f"    Worst solution found:")
+    print(f"      Makespan: {worst_makespan:.0f} time units")
+    
+    print()
+    print(f"    Average makespan: {avg_makespan:.1f} time units")
+    
+    # Compare with our manual optimal solution
+    print("\n" + "=" * 70)
+    print("7. Random Search vs Manual Optimization:")
+    print("=" * 70)
+    print(f"    Manual optimal solution (Solution 4): {makespan4:.0f} time units")
+    print(f"    Best random solution (from 100):      {best_makespan:.0f} time units")
+    
+    if best_makespan <= makespan4:
+        print(f"\n    Random search found equal or better solution!")
+        print(f"    Difference: {makespan4 - best_makespan:.0f} time units")
+    else:
+        print(f"\n    Manual solution is still better!")
+        print(f"    Difference: {best_makespan - makespan4:.0f} time units worse")
+    
+    print(f"\n    Note: With only 5 jobs, random search can get lucky.")
+    print(f"    With 50+ jobs, random search fails completely!")
+    print(f"    That's why we need Genetic Algorithm evolution.")
+
+    # Experiment with larger problem
+    print("\n" + "=" * 70)
+    print("8. Larger Problem: Random Search Struggles")
+    print("=" * 70)
+    
+    # Create larger problem
+    np.random.seed(123)
+    large_jobs = create_sample_jobs(num_jobs=20, min_time=5, max_time=30)
+    large_num_machines = 5
+    
+    print(f"\n  Problem: {len(large_jobs)} jobs, {large_num_machines} machines")
+    print(f"  Total processing time: {sum(j.processing_time for j in large_jobs)} time units")
+    print(f"  Ideal makespan (if perfectly balanced): {sum(j.processing_time for j in large_jobs) / large_num_machines:.1f} time units")
+    print()
+    
+    # Try random search
+    large_population = initialize_population(len(large_jobs), large_num_machines, population_size=100)
+    large_fitness = evaluate_population(large_population, large_jobs, large_num_machines)
+    
+    large_best_idx = np.argmax(large_fitness)
+    large_best_makespan = 1.0 / large_fitness[large_best_idx]
+    large_avg_makespan = 1.0 / np.mean(large_fitness)
+    
+    print(f"  Random Search Results (100 attempts):")
+    print(f"    Best makespan found: {large_best_makespan:.0f} time units")
+    print(f"    Average makespan: {large_avg_makespan:.0f} time units")
+    
+    ideal_makespan = sum(j.processing_time for j in large_jobs) / large_num_machines
+    gap = large_best_makespan - ideal_makespan
+    print(f"\n    Gap from ideal: {gap:.0f} time units ({(gap/ideal_makespan*100):.1f}%)")
+    print(f"\n    This is where Genetic Algorithm will shine!")
+    print(f"    GA will evolve these 100 solutions over 200 generations")
+    print(f"    and find MUCH better solutions!")
