@@ -207,6 +207,95 @@ def calculate_fitness(chromosome: np.ndarray, jobs: List[Job], num_machines: int
     
     return fitness
 
+def tournament_selection(population: np.ndarray, fitness_values: np.ndarray, tournament_size: int = 3) -> np.ndarray:
+    """
+    Select one parent using tournament selection.
+    
+    Tournament selection works by:
+    1. Randomly selecting 'tournament_size' individuals from population
+    2. Comparing their fitness values
+    3. Selecting the one with highest fitness as the winner
+    
+    This method gives better solutions higher probability of being selected,
+    while still giving weaker solutions a chance (maintaining diversity).
+    
+    Args:
+        population (np.ndarray): Population matrix (population_size, num_jobs)
+        fitness_values (np.ndarray): Fitness value for each chromosome
+        tournament_size (int): Number of individuals in each tournament (default: 3)
+                               Larger = more selection pressure (faster convergence)
+                               Smaller = more diversity (slower convergence)
+        
+    Returns:
+        np.ndarray: Selected parent chromosome (1D array)
+        
+    Example:
+        population = [[0,1,2], [1,0,2], [2,1,0]]
+        fitness = [0.020, 0.033, 0.025]
+        
+        Tournament: indices [0, 2] selected
+        Fitness: [0.020, 0.025]
+        Winner: index 2 (fitness 0.025)
+        Returns: [2, 1, 0]
+    """
+    # Get population size
+    population_size = len(population)
+
+    # Randomly select tournament_size individuals (without replacement)
+    # np.random.choice returns array of indices
+    tournament_indices = np.random.choice(
+        population_size,           # Choose from 0 to population_size-1
+        size=tournament_size,      # Select this many individuals
+        replace=False              # Each individual can only be selected once per tournament
+    )
+
+    # Get fitness values for tournament participants
+    tournament_fitness = fitness_values[tournament_indices]
+    # Find the winner (highest fitness in tournament)
+    # np.argmax returns index in tournament_fitness array (0, 1, or 2)
+    winner_position = np.argmax(tournament_fitness)
+    
+    # Get the actual index in the population
+    winner_index = tournament_indices[winner_position]
+    
+    # Return the winning chromosome
+    return population[winner_index].copy()  # .copy() to avoid reference issues
+
+def select_parents(population: np.ndarray, fitness_values: np.ndarray, 
+                   num_parents: int, tournament_size: int = 3) -> np.ndarray:
+    """
+    Select multiple parents using tournament selection.
+    
+    This function creates a "mating pool" of parents that will be used
+    to create the next generation through crossover and mutation.
+    
+    Args:
+        population (np.ndarray): Population matrix
+        fitness_values (np.ndarray): Fitness values for all chromosomes
+        num_parents (int): Number of parents to select (usually = population_size)
+        tournament_size (int): Tournament size (default: 3)
+        
+    Returns:
+        np.ndarray: Selected parents matrix (num_parents, num_jobs)
+        
+    Example:
+        # Select 100 parents from population of 100
+        parents = select_parents(population, fitness_values, num_parents=100)
+        
+        # Note: Same individual can be selected multiple times
+        # This is intentional - better solutions get more copies!
+    """
+    # Get number of jobs from population shape
+    num_jobs = population.shape[1]
+    
+    # Create empty array to store selected parents
+    parents = np.zeros((num_parents, num_jobs), dtype=int)
+    
+    # Run tournament selection num_parents times
+    for i in range(num_parents):
+        parents[i] = tournament_selection(population, fitness_values, tournament_size)
+    
+    return parents
 #########TESTS######################   
 if __name__ == "__main__":
     print("=" * 70)
@@ -483,3 +572,69 @@ if __name__ == "__main__":
     print(f"\n    This is where Genetic Algorithm will shine!")
     print(f"    GA will evolve these 100 solutions over 200 generations")
     print(f"    and find MUCH better solutions!")
+
+    # Tournament Selection Demonstration
+    print("\n" + "=" * 70)
+    print("9. Tournament Selection (Parent Selection for Next Generation):")
+    print("=" * 70)
+    
+    print("\n  How Tournament Selection works:")
+    print("  1. Pick 3 random individuals from population")
+    print("  2. Compare their fitness values")
+    print("  3. Winner (highest fitness) becomes a parent")
+    print("  4. Repeat until we have enough parents")
+    print()
+    
+    # Use small population for demonstration
+    np.random.seed(100)
+    demo_pop = initialize_population(num_jobs, num_machines, population_size=10)
+    demo_fitness = evaluate_population(demo_pop, jobs, num_machines)
+    
+    print("  Demo Population (10 solutions):")
+    for i in range(10):
+        makespan_demo = 1.0 / demo_fitness[i]
+        print(f"    Solution {i}: chromosome={demo_pop[i]} | "
+              f"makespan={makespan_demo:.0f} | fitness={demo_fitness[i]:.4f}")
+    
+    print("\n  Running 5 tournament selections:")
+    for t in range(5):
+        selected_parent = tournament_selection(demo_pop, demo_fitness, tournament_size=3)
+        parent_fitness = calculate_fitness(selected_parent, jobs, num_machines)
+        parent_makespan = 1.0 / parent_fitness
+        
+        print(f"\n    Tournament {t+1}:")
+        print(f"      Selected parent: {selected_parent}")
+        print(f"      Parent makespan: {parent_makespan:.0f}")
+        print(f"      Parent fitness: {parent_fitness:.4f}")
+    
+    # Show selection pressure
+    print("\n" + "=" * 70)
+    print("10. Selection Pressure Analysis:")
+    print("=" * 70)
+    
+    # Select many parents and see distribution
+    many_parents = select_parents(demo_pop, demo_fitness, num_parents=100, tournament_size=3)
+    
+    # Count how many times each solution was selected
+    selection_counts = np.zeros(10)
+    for parent in many_parents:
+        # Find which original solution this parent matches
+        for i in range(10):
+            if np.array_equal(parent, demo_pop[i]):
+                selection_counts[i] += 1
+                break
+    
+    print("\n  Selected 100 parents from 10 solutions:")
+    print("  How many times was each solution selected?\n")
+    
+    # Sort by fitness for display
+    sorted_indices = np.argsort(demo_fitness)[::-1]  # Descending order
+    
+    for rank, idx in enumerate(sorted_indices, 1):
+        makespan_val = 1.0 / demo_fitness[idx]
+        bar = "█" * int(selection_counts[idx] / 2)  # Visual bar
+        print(f"    #{rank} Solution {idx} (fitness={demo_fitness[idx]:.4f}): "
+              f"{int(selection_counts[idx])} times {bar}")
+    
+    print("\n  Notice: Better solutions (higher fitness) get selected more often!")
+    print("  But weaker solutions still get some chances (maintains diversity)")
