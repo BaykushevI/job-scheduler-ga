@@ -7,17 +7,67 @@ A Python-based project for optimizing job scheduling across multiple machines us
 **Completed:**
 - Job class with `__init__` and `__repr__` methods
 - `create_sample_jobs()` function for generating random jobs
-- Test cases for functionality verification
+- `calculate_makespan()` function for evaluating solutions
+- `calculate_fitness()` function (inverse of makespan)
+- Chromosome representation (job-to-machine assignment array)
+- Manual optimization examples demonstrating 63.4% improvement
+- Test cases with 4 different solutions
 
 **In Development:**
-- Chromosome representation
-- Fitness function
-- Genetic Algorithm operators (selection, crossover, mutation)
-- Result visualization
+- Population initialization (random chromosomes)
+- Selection operator (tournament selection)
+- Crossover operator (single-point crossover)
+- Mutation operator (random reassignment)
+- Main evolution loop
+- Result visualization (fitness evolution, Gantt chart)
 
 ## Problem Description
-
 The Job Scheduling Problem involves assigning N jobs to M machines to minimize the makespan (total completion time). Each job has a specific processing time, and machines can process jobs in parallel.
+
+## Current Implementation
+
+### Chromosome Representation
+
+Solutions are encoded as NumPy arrays where each index represents a job and the value represents the assigned machine.
+
+**Example:**
+```python
+# 5 jobs, 3 machines
+chromosome = [2, 0, 1, 2, 1]
+# Interpretation:
+# Job 0 → Machine 2
+# Job 1 → Machine 0
+# Job 2 → Machine 1
+# Job 3 → Machine 2
+# Job 4 → Machine 1
+```
+
+### Makespan Calculation
+
+Makespan is the maximum completion time across all machines (the bottleneck).
+```python
+makespan = calculate_makespan(chromosome, jobs, num_machines)
+# Lower makespan = better solution
+```
+
+### Fitness Function
+
+Fitness is the inverse of makespan to convert minimization to maximization:
+```python
+fitness = 1.0 / makespan
+# Higher fitness = better solution
+```
+
+**Why inverse?**
+- Genetic Algorithms maximize fitness
+- We want to minimize makespan
+- Using `1/makespan` aligns both goals
+
+**Example:**
+```
+Solution A: makespan=30 → fitness=0.0333 (better, 33.3% selection chance)
+Solution B: makespan=50 → fitness=0.0200 (worse, 20.0% selection chance)
+```
 
 **Example:**
 ```
@@ -105,14 +155,12 @@ job-scheduler-ga/
 ```
 
 ## Technologies
-
 - **Python 3.8+**: Core programming language
 - **NumPy**: Numerical computations and random number generation
 - **Matplotlib**: Data visualization and result plotting
 - **Plotly** (optional): Interactive visualizations
 
 ## Genetic Algorithm Components
-
 The project implements the following GA components:
 
 1. **Chromosome Encoding**: Job-to-machine assignment representation
@@ -123,7 +171,6 @@ The project implements the following GA components:
 6. **Elitism**: Preservation of best solutions across generations
 
 ## Development
-
 This project is developed incrementally for educational purposes. Each component is thoroughly documented with inline comments explaining the implementation details.
 
 ### Running Tests
