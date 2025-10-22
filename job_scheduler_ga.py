@@ -109,6 +109,39 @@ def calculate_makespan(chromosome: np.ndarray, jobs: List[Job], num_machines: in
     
     return makespan
 
+def calculate_fitness(chromosome: np.ndarray, jobs: List[Job], num_machines: int) -> float:
+    """
+    Calculate the fitness value for a given chromosome.
+    
+    Fitness is the inverse of makespan (1/makespan).
+    Higher fitness = better solution.
+    
+    Why inverse?
+    - Our goal: minimize makespan (lower is better)
+    - GA goal: maximize fitness (higher is better)
+    - Solution: fitness = 1/makespan converts minimization to maximization
+    
+    Args:
+        chromosome (np.ndarray): Job-to-machine assignment array
+        jobs (List[Job]): List of Job objects
+        num_machines (int): Number of available machines
+        
+    Returns:
+        float: Fitness value (1/makespan)
+        
+    Example:
+        Solution A: makespan = 30 → fitness = 1/30 = 0.0333 (better)
+        Solution B: makespan = 50 → fitness = 1/50 = 0.0200 (worse)
+    """
+    # Calculate makespan for this chromosome
+    makespan = calculate_makespan(chromosome, jobs, num_machines)
+    
+    # Convert to fitness (inverse relationship)
+    # Lower makespan → Higher fitness
+    fitness = 1.0 / makespan
+    
+    return fitness
+
 #########TESTS######################   
 if __name__ == "__main__":
     print("=" * 70)
@@ -223,3 +256,47 @@ if __name__ == "__main__":
     best_makespan = min(makespan1, makespan2, makespan3, makespan4)
     print(f"\n  Best solution: {best_makespan:.0f} time units")
     print(f"  Improvement from worst: {((makespan1 - best_makespan) / makespan1 * 100):.1f}%")
+
+    # Test fitness calculation
+    print("\n" + "=" * 70)
+    print("4. Fitness Calculation (for Genetic Algorithm):")
+    print("=" * 70)
+    print("\n  Why fitness = 1/makespan?")
+    print("  - GA maximizes fitness (higher = better)")
+    print("  - We want to minimize makespan (lower = better)")
+    print("  - Solution: Use inverse (1/makespan)")
+    print()
+    
+    # Calculate fitness for all solutions
+    fitness1 = calculate_fitness(chromosome1, jobs, num_machines)
+    fitness2 = calculate_fitness(chromosome2, jobs, num_machines)
+    fitness3 = calculate_fitness(chromosome3, jobs, num_machines)
+    fitness4 = calculate_fitness(chromosome4, jobs, num_machines)
+    
+    print("  Makespan → Fitness conversion:")
+    print(f"    Solution 1: makespan={makespan1:.0f} → fitness={fitness1:.6f}")
+    print(f"    Solution 2: makespan={makespan2:.0f} → fitness={fitness2:.6f}")
+    print(f"    Solution 3: makespan={makespan3:.0f} → fitness={fitness3:.6f}")
+    print(f"    Solution 4: makespan={makespan4:.0f} → fitness={fitness4:.6f} ← HIGHEST (best)")
+    
+    print("\n  Notice: Lower makespan = Higher fitness!")
+    print(f"  Best solution has fitness {fitness4:.6f} (makespan {makespan4:.0f})")
+    
+    # Show selection probability (simplified)
+    print("\n" + "=" * 70)
+    print("5. Selection Probability (simplified example):")
+    print("=" * 70)
+    
+    total_fitness = fitness1 + fitness2 + fitness3 + fitness4
+    prob1 = (fitness1 / total_fitness) * 100
+    prob2 = (fitness2 / total_fitness) * 100
+    prob3 = (fitness3 / total_fitness) * 100
+    prob4 = (fitness4 / total_fitness) * 100
+    
+    print("\n  In GA, better solutions have higher chance to be selected:")
+    print(f"    Solution 1: {prob1:.1f}% chance")
+    print(f"    Solution 2: {prob2:.1f}% chance")
+    print(f"    Solution 3: {prob3:.1f}% chance")
+    print(f"    Solution 4: {prob4:.1f}% chance ← HIGHEST (best solution)")
+    
+    print("\n  This is how GA evolves toward better solutions!")
